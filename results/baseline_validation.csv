@@ -1,0 +1,35 @@
+check,paper,simulated,sim_std,scenario,platform,method,within_tol
+PIR-only camera activations,79.0,79.0,0.0,fusion_79,pi_zero,pir_only,True
+PIR-only false triggers,39.0,39.0,0.0,fusion_79,pi_zero,pir_only,True
+Binary fusion true detections (of 40),34.0,34.22,2.21,fusion_79,pi_zero,binary,True
+Binary fusion detection rate %,85.0,85.55,5.53,fusion_79,pi_zero,binary,True
+Binary fusion false triggers,0.0,0.0,0.0,fusion_79,pi_zero,binary,True
+Prob. fusion tau=0.65 detection rate %,95.0,95.06,3.29,fusion_79,pi_zero,probabilistic_tau0.65,True
+Prob. fusion tau=0.65 camera activations,38.0,38.02,1.32,fusion_79,pi_zero,probabilistic_tau0.65,True
+Prob. fusion tau=0.65 false activations,0.0,0.0,0.0,fusion_79,pi_zero,probabilistic_tau0.65,True
+Prob. fusion tau=0.45 camera activations,40.0,40.1,1.89,fusion_79,pi_zero,probabilistic_tau0.45,True
+Prob. fusion tau=0.45 false activations,2.0,2.04,1.37,fusion_79,pi_zero,probabilistic_tau0.45,True
+Camera energy PIR-only (Wh),0.22,0.22,0.0,fusion_79,pi_zero,pir_only,True
+Camera energy tau=0.65 (Wh),0.106,0.11,0.0,fusion_79,pi_zero,probabilistic_tau0.65,True
+Camera energy saving tau=0.65 vs PIR-only %,51.9,51.87,1.67,fusion_79,pi_zero,probabilistic_tau0.65,True
+Pi Zero end-to-end latency (s),6.5,6.9,0.02,fusion_79,pi_zero,probabilistic_tau0.65,True
+Pi 4 end-to-end latency (s),2.4,2.5,0.02,fusion_79,pi4,probabilistic_tau0.65,True
+LoRa packet delivery % (1 km),100.0,100.0,0.0,fusion_79,pi_zero,probabilistic_tau0.65,True
+113-events: triggers removed by fusion %,62.8,83.28,0.96,events_113,pi_zero,probabilistic_tau0.65,False
+113-events: confirmed alerts,10.0,17.3,1.56,events_113,pi_zero,probabilistic_tau0.65,False
+113-events: raw trigger reduction %,91.2,84.69,1.38,events_113,pi_zero,probabilistic_tau0.65,False
+Field-97 alerts transmitted (medium sent),77.0,61.14,3.61,field_97,pi_zero,probabilistic_tau0.65_send_medium,False
+Field-97 false alarm rate %,0.0,0.0,0.0,field_97,pi_zero,probabilistic_tau0.65,True
+20-intrusion field detection Pi Zero % (Table II 14/20),70.0,86.47,7.78,events_113,pi_zero,probabilistic_tau0.65,False
+20-intrusion field detection Pi 4 % (Table II 19/20),95.0,88.22,7.73,events_113,pi4,probabilistic_tau0.65,True
+Field-97 events with confidence > 0.8 % (Table X 38/97),39.2,38.65,4.23,field_97,pi_zero,(vision sampler),True
+vision pi_zero human F1 %,90.4,90.4,,,,,True
+vision pi_zero elephant F1 %,14.8,14.9,,,,,True
+vision pi_zero cow F1 %,38.7,38.8,,,,,True
+vision pi_zero obstacle F1 %,69.2,69.5,,,,,True
+vision pi_zero overall accuracy %,53.9,54.0,,,,,True
+vision pi4 human F1 %,62.4,62.4,,,,,True
+vision pi4 elephant F1 %,83.5,83.5,,,,,True
+vision pi4 cow F1 %,7.7,7.6,,,,,True
+vision pi4 obstacle F1 %,100.0,100.0,,,,,True
+vision pi4 overall accuracy %,64.1,64.1,,,,,True
