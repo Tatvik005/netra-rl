@@ -24,3 +24,4 @@ Thumbs.db
 # Documentation / Excluded files
 *.pdf
 PROJECT_SUMMARY.md
+.batch_counter
