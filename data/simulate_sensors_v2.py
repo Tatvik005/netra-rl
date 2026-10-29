@@ -211,44 +211,31 @@ def generate_sensor_data(
     return df
 
 
-def run_sanity_checks(df_42: pd.DataFrame, output_csv: str) -> pd.DataFrame:
+def compute_sanity_metrics(df_data: pd.DataFrame, seed: int = None) -> list:
     """
-    Run automated sanity check verification pipeline on Seed 42 dataset.
-    Prints formatted verification table to terminal and saves to output_csv.
-
-    Parameters
-    ----------
-    df_42 : pd.DataFrame
-        DataFrame generated with seed 42.
-    output_csv : str
-        Path to save the sanity check summary table.
-
-    Returns
-    -------
-    pd.DataFrame
-        Summary table with verification results.
+    Compute theoretical vs empirical sanity check metrics for a given sensor dataset.
     """
-    total_rows = len(df_42)
-    is_night = (df_42["hour"] > 19) | (df_42["hour"] < 5)
+    total_rows = len(df_data)
+    is_night = (df_data["hour"] > 19) | (df_data["hour"] < 5)
     is_day = ~is_night
 
-    count_none = int((df_42["event"] == "none").sum())
-    count_human = int((df_42["event"] == "human").sum())
-    count_animal = int((df_42["event"] == "animal").sum())
+    count_none = int((df_data["event"] == "none").sum())
+    count_human = int((df_data["event"] == "human").sum())
+    count_animal = int((df_data["event"] == "animal").sum())
 
     pct_none = count_none / total_rows * 100.0
     pct_human = count_human / total_rows * 100.0
     pct_animal = count_animal / total_rows * 100.0
 
-    p_label_day = float(df_42[is_day]["label"].mean())
-    p_label_night = float(df_42[is_night]["label"].mean())
+    p_label_day = float(df_data[is_day]["label"].mean()) if is_day.sum() > 0 else 0.0
+    p_label_night = float(df_data[is_night]["label"].mean()) if is_night.sum() > 0 else 0.0
 
-    p_label_pir1 = float(df_42[df_42["pir"] == 1]["label"].mean())
-    p_label_pir0 = float(df_42[df_42["pir"] == 0]["label"].mean())
+    p_label_pir1 = float(df_data[df_data["pir"] == 1]["label"].mean()) if (df_data["pir"] == 1).sum() > 0 else 0.0
+    p_label_pir0 = float(df_data[df_data["pir"] == 0]["label"].mean()) if (df_data["pir"] == 0).sum() > 0 else 0.0
 
-    mean_d_none = float(df_42[df_42["event"] == "none"]["distance"].mean())
-    mean_d_human = float(df_42[df_42["event"] == "human"]["distance"].mean())
-    mean_d_animal = float(df_42[df_42["event"] == "animal"]["distance"].mean())
+    mean_d_none = float(df_data[df_data["event"] == "none"]["distance"].mean()) if count_none > 0 else 0.0
+    mean_d_human = float(df_data[df_data["event"] == "human"]["distance"].mean()) if count_human > 0 else 0.0
+    mean_d_animal = float(df_data[df_data["event"] == "animal"]["distance"].mean()) if count_animal > 0 else 0.0
 
     records = [
         {
@@ -256,99 +243,176 @@ def run_sanity_checks(df_42: pd.DataFrame, output_csv: str) -> pd.DataFrame:
             "Computed_Value": f"{count_none} ({pct_none:.1f}%)",
             "Expected_Value": "4156 (~83.1%)",
             "Tolerance": "approx ~4156 rows",
-            "Passed": 3900 <= count_none <= 4400
+            "Passed": 3900 <= count_none <= 4400,
+            "Raw_Value": count_none
         },
         {
             "Metric": "Class Count: human",
             "Computed_Value": f"{count_human} ({pct_human:.1f}%)",
             "Expected_Value": "406 (~8.1%)",
             "Tolerance": "approx ~406 rows",
-            "Passed": 350 <= count_human <= 460
+            "Passed": 350 <= count_human <= 460,
+            "Raw_Value": count_human
         },
         {
             "Metric": "Class Count: animal",
             "Computed_Value": f"{count_animal} ({pct_animal:.1f}%)",
             "Expected_Value": "438 (~8.8%)",
             "Tolerance": "approx ~438 rows",
-            "Passed": 380 <= count_animal <= 500
+            "Passed": 380 <= count_animal <= 500,
+            "Raw_Value": count_animal
         },
         {
             "Metric": "P(label = 1 | Day)",
             "Computed_Value": f"{p_label_day:.4f}",
             "Expected_Value": "0.1500",
             "Tolerance": "[0.12, 0.18]",
-            "Passed": 0.12 <= p_label_day <= 0.18
+            "Passed": 0.12 <= p_label_day <= 0.18,
+            "Raw_Value": p_label_day
         },
         {
             "Metric": "P(label = 1 | Night)",
             "Computed_Value": f"{p_label_night:.4f}",
             "Expected_Value": "0.2000",
             "Tolerance": "[0.17, 0.23]",
-            "Passed": 0.17 <= p_label_night <= 0.23
+            "Passed": 0.17 <= p_label_night <= 0.23,
+            "Raw_Value": p_label_night
         },
         {
             "Metric": "P(label = 1 | PIR = 1)",
             "Computed_Value": f"{p_label_pir1:.4f}",
             "Expected_Value": "0.6400",
             "Tolerance": "[0.58, 0.70]",
-            "Passed": 0.58 <= p_label_pir1 <= 0.70
+            "Passed": 0.58 <= p_label_pir1 <= 0.70,
+            "Raw_Value": p_label_pir1
         },
         {
             "Metric": "P(label = 1 | PIR = 0)",
             "Computed_Value": f"{p_label_pir0:.4f}",
             "Expected_Value": "0.0280",
             "Tolerance": "[0.015, 0.045]",
-            "Passed": 0.015 <= p_label_pir0 <= 0.045
+            "Passed": 0.015 <= p_label_pir0 <= 0.045,
+            "Raw_Value": p_label_pir0
         },
         {
             "Metric": "Mean Distance: none",
             "Computed_Value": f"{mean_d_none:.4f} m",
             "Expected_Value": "4.2500 m",
             "Tolerance": "~4.25 m (+-0.10)",
-            "Passed": 4.15 <= mean_d_none <= 4.35
+            "Passed": 4.15 <= mean_d_none <= 4.35,
+            "Raw_Value": mean_d_none
         },
         {
             "Metric": "Mean Distance: human",
             "Computed_Value": f"{mean_d_human:.4f} m",
             "Expected_Value": "1.5000 m",
             "Tolerance": "~1.50 m (+-0.15)",
-            "Passed": 1.35 <= mean_d_human <= 1.65
+            "Passed": 1.35 <= mean_d_human <= 1.65,
+            "Raw_Value": mean_d_human
         },
         {
             "Metric": "Mean Distance: animal",
             "Computed_Value": f"{mean_d_animal:.4f} m",
             "Expected_Value": "1.5000 m",
             "Tolerance": "~1.50 m (+-0.15)",
-            "Passed": 1.35 <= mean_d_animal <= 1.65
+            "Passed": 1.35 <= mean_d_animal <= 1.65,
+            "Raw_Value": mean_d_animal
         },
     ]
+    return records
 
+
+def run_sanity_checks(df_data: pd.DataFrame, output_csv: str, seed: int = 42, verbose: bool = True) -> pd.DataFrame:
+    """
+    Run automated sanity check verification pipeline on a specific dataset.
+    Prints formatted verification table to terminal and saves to output_csv.
+    """
+    records = compute_sanity_metrics(df_data, seed=seed)
     summary_df = pd.DataFrame(records)
     summary_df["Status"] = summary_df["Passed"].map({True: "PASS", False: "FAIL"})
 
-    # Print formatted table to terminal
-    header = "=" * 88
-    print("\n" + header)
-    print("NETRA-RL Task A: Seed 42 Sanity Checks & Theoretical Verification")
-    print(header)
-    print(f"{'Metric':<25} | {'Computed':<15} | {'Expected':<15} | {'Tolerance':<18} | {'Status'}")
-    print("-" * 88)
-    for _, row in summary_df.iterrows():
-        print(f"{row['Metric']:<25} | {row['Computed_Value']:<15} | {row['Expected_Value']:<15} | {row['Tolerance']:<18} | {row['Status']}")
-    print(header)
+    if verbose:
+        header = "=" * 88
+        print("\n" + header)
+        print(f"NETRA-RL Task A: Seed {seed} Sanity Checks & Theoretical Verification")
+        print(header)
+        print(f"{'Metric':<25} | {'Computed':<15} | {'Expected':<15} | {'Tolerance':<18} | {'Status'}")
+        print("-" * 88)
+        for _, row in summary_df.iterrows():
+            print(f"{row['Metric']:<25} | {row['Computed_Value']:<15} | {row['Expected_Value']:<15} | {row['Tolerance']:<18} | {row['Status']}")
+        print(header)
 
-    all_passed = summary_df["Passed"].all()
-    if all_passed:
-        print(">>> ALL SANITY CHECKS PASSED FOR SEED 42 <<<\n")
-    else:
-        print(">>> WARNING: SOME SANITY CHECKS FAILED <<<\n")
+        all_passed = summary_df["Passed"].all()
+        if all_passed:
+            print(f">>> ALL SANITY CHECKS PASSED FOR SEED {seed} <<<\n")
+        else:
+            print(f">>> WARNING: SOME SANITY CHECKS OUTSIDE TOLERANCE FOR SEED {seed} <<<\n")
 
-    # Save to CSV
     os.makedirs(os.path.dirname(output_csv), exist_ok=True)
-    summary_df.to_csv(output_csv, index=False)
-    print(f"Sanity metrics saved to: {output_csv}")
-
+    summary_df[["Metric", "Computed_Value", "Expected_Value", "Tolerance", "Status"]].to_csv(output_csv, index=False)
     return summary_df
+
+
+def run_all_seeds_sanity_checks(datasets_dict: dict, output_csv: str) -> pd.DataFrame:
+    """
+    Generate comprehensive multi-seed sanity verification report covering all generated seeds.
+    Produces a master comparison table showing every seed's computed values alongside expectations.
+    """
+    seeds = sorted(datasets_dict.keys())
+    if not seeds:
+        return pd.DataFrame()
+
+    per_seed_records = {s: compute_sanity_metrics(datasets_dict[s], seed=s) for s in seeds}
+    sample_records = per_seed_records[seeds[0]]
+
+    table_rows = []
+    for i, rec in enumerate(sample_records):
+        row = {
+            "Metric": rec["Metric"],
+            "Expected_Value": rec["Expected_Value"],
+            "Tolerance": rec["Tolerance"]
+        }
+        all_passed = True
+        raw_vals = []
+        for s in seeds:
+            s_rec = per_seed_records[s][i]
+            row[f"Seed_{s}"] = s_rec["Computed_Value"]
+            raw_vals.append(s_rec["Raw_Value"])
+            if not s_rec["Passed"]:
+                all_passed = False
+
+        if isinstance(raw_vals[0], (int, float)):
+            mean_val = sum(raw_vals) / len(raw_vals)
+            row["Mean_Value"] = f"{mean_val:.2f}" if isinstance(raw_vals[0], int) else f"{mean_val:.4f}"
+        else:
+            row["Mean_Value"] = "N/A"
+
+        row["Overall_Status"] = "PASS" if all_passed else "FAIL"
+        table_rows.append(row)
+
+    master_df = pd.DataFrame(table_rows)
+
+    # Print multi-seed master verification table
+    header = "=" * 108
+    print("\n" + header)
+    print("NETRA-RL Task A: Consolidated Sanity Verification Covering ALL Seeds")
+    print(header)
+    col_str = f"{'Metric':<24} | {'Expected':<14} | " + " | ".join([f"Seed {s:<5}" for s in seeds]) + " | Status"
+    print(col_str)
+    print("-" * 108)
+    for _, r in master_df.iterrows():
+        seed_cols = " | ".join([f"{str(r[f'Seed_{s}']).split()[0]:<10}" for s in seeds])
+        print(f"{r['Metric']:<24} | {r['Expected_Value']:<14} | {seed_cols} | {r['Overall_Status']}")
+    print(header)
+    all_all_passed = (master_df["Overall_Status"] == "PASS").all()
+    if all_all_passed:
+        print(">>> ALL SANITY CHECKS PASSED ACROSS ALL SEEDS <<<\n")
+    else:
+        print(">>> SOME CHECKS OUTSIDE TOLERANCE (CHECK INDIVIDUAL SEEDS) <<<\n")
+
+    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
+    master_df.to_csv(output_csv, index=False)
+    return master_df
 
 
 def plot_causal_graph(output_png: str) -> None:
@@ -579,6 +643,7 @@ def main():
                 # If generating a specific single scenario, mirror to sensor_v2_seed{seed}.csv for active work
                 active_csv_path = os.path.join(data_dir, f"sensor_v2_seed{seed}.csv")
                 df.to_csv(active_csv_path, index=False)
+                benchmark_datasets[seed] = df
 
             pct_intrusion = (df["label"] == 1).mean() * 100.0
             pct_human = (df["event"] == "human").mean() * 100.0
@@ -586,14 +651,38 @@ def main():
             pir_rate = (df["pir"] == 1).mean() * 100.0
             print(f"  • {csv_filename:<36} | Intrusions: {pct_intrusion:5.1f}% | Human: {pct_human:4.1f}% | Animal: {pct_animal:4.1f}% | PIR: {pir_rate:4.1f}%")
 
-    # Run automated sanity check on Benchmark Seed 42 if benchmark was included
-    if "benchmark" in benchmark_datasets:
-        sanity_csv_path = os.path.join(results_dir, "task_a_sanity_seed42.csv")
-        run_sanity_checks(benchmark_datasets[42], sanity_csv_path)
+    # Run automated sanity checks covering ALL seeds of data that were just saved
+    sanity_dict = benchmark_datasets if len(benchmark_datasets) > 0 else {42: df}
+    for s_id, s_df in sanity_dict.items():
+        s_csv_path = os.path.join(data_dir, f"task_a_sanity_seed{s_id}.csv")
+        run_sanity_checks(s_df, s_csv_path, seed=s_id, verbose=(s_id == 42))
+        if os.path.exists(results_dir):
+            try:
+                run_sanity_checks(s_df, os.path.join(results_dir, f"task_a_sanity_seed{s_id}.csv"), seed=s_id, verbose=False)
+            except Exception:
+                pass
+        print(f"Sanity verification for Seed {s_id} saved to: {s_csv_path}")
+
+    # Generate and save master consolidated report covering ALL seeds
+    all_seeds_data_path = os.path.join(data_dir, "task_a_sanity_all_seeds.csv")
+    run_all_seeds_sanity_checks(sanity_dict, all_seeds_data_path)
+    if os.path.exists(results_dir):
+        try:
+            run_all_seeds_sanity_checks(sanity_dict, os.path.join(results_dir, "task_a_sanity_all_seeds.csv"))
+        except Exception:
+            pass
+    print(f"Consolidated sanity verification covering ALL seeds saved to: {all_seeds_data_path}")
 
     # Generate causal graph diagram
-    causal_graph_path = os.path.join(results_dir, "causal_graph.png")
-    plot_causal_graph(causal_graph_path)
+    causal_data_path = os.path.join(data_dir, "causal_graph.png")
+    plot_causal_graph(causal_data_path)
+    if os.path.exists(results_dir):
+        try:
+            causal_results_path = os.path.join(results_dir, "causal_graph.png")
+            plot_causal_graph(causal_results_path)
+        except Exception:
+            pass
+    print(f"Causal graph DAG saved to: {causal_data_path} (300 DPI)")
 
     print("=" * 88)
     print(f"Batch generation complete: {total_files_generated} dataset(s) generated successfully!")
